@@ -476,10 +476,21 @@ function DashboardPage() {
     [allVisible, selectedEquipeId],
   );
 
-  const filtered = useMemo(
-    () => filterByPeriod(filteredByEquipe, period, appliedRange, dateBasis),
-    [filteredByEquipe, period, appliedRange, dateBasis],
-  );
+  const filtered = useMemo(() => {
+    if (dateBasis === "finalized") {
+      const finalizadasNoPeriodo = filterByPeriod(
+        filteredByEquipe,
+        period,
+        appliedRange,
+        "finalized",
+      );
+      const backlogAtual = filteredByEquipe.filter(
+        (o) => o.status === "PENDENTE" || o.status === "EM_ANDAMENTO",
+      );
+      return [...backlogAtual, ...finalizadasNoPeriodo];
+    }
+    return filterByPeriod(filteredByEquipe, period, appliedRange, "created");
+  }, [filteredByEquipe, period, appliedRange, dateBasis]);
 
   const periodLabel =
     period === "custom" && appliedRange
