@@ -45,7 +45,6 @@ export interface Ocorrencia {
   finalized_by: string | null;
   reopened_at: string | null;
   reopened_by: string | null;
-  equipe_atribuida_at: string | null;
 }
 
 export interface TipoServico {

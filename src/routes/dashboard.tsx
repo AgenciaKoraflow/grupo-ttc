@@ -34,7 +34,6 @@ import {
   ArrowRight,
   TrendingUp,
   TrendingDown,
-  Timer,
   Target,
   Users,
   Zap,
@@ -93,22 +92,6 @@ function diffDays(a: string, b: string) {
   return Math.round(
     (new Date(b).getTime() - new Date(a).getTime()) / 86_400_000,
   );
-}
-
-function diffHours(a: string, b: string) {
-  return (new Date(b).getTime() - new Date(a).getTime()) / 3_600_000;
-}
-
-function avgResolutionHours(ocs: Ocorrencia[]): number {
-  const finalizadas = ocs.filter(
-    (o) => o.status === "FINALIZADA" && o.finalized_at && o.equipe_atribuida_at,
-  );
-  if (!finalizadas.length) return 0;
-  const total = finalizadas.reduce(
-    (acc, o) => acc + diffHours(o.equipe_atribuida_at!, o.finalized_at!),
-    0,
-  );
-  return Math.round((total / finalizadas.length) * 10) / 10;
 }
 
 function conclusionRate(ocs: Ocorrencia[]): number {
@@ -185,7 +168,6 @@ function byEquipe(ocs: Ocorrencia[], equipes: { id: string; nome: string }[]) {
         finalizadas: eqOcs.filter((o) => o.status === "FINALIZADA").length,
         pendentes: eqOcs.filter((o) => o.status === "PENDENTE").length,
         em_andamento: eqOcs.filter((o) => o.status === "EM_ANDAMENTO").length,
-        tmr: avgResolutionHours(eqOcs),
         taxa: conclusionRate(eqOcs),
       };
     })
@@ -213,9 +195,6 @@ function byOperador(
         nomeCompleto: p.nome,
         total: pOcs.length,
         finalizadas: finalizadas.length,
-        tmr: avgResolutionHours(
-          finalizadas.length ? ocs.filter((o) => o.finalized_by === p.id) : [],
-        ),
         taxa: pOcs.length
           ? Math.round((finalizadas.length / pOcs.length) * 100)
           : 0,
@@ -512,7 +491,6 @@ function DashboardPage() {
     (o) => o.status === "EM_ANDAMENTO",
   ).length;
   const finalizadas = filtered.filter((o) => o.status === "FINALIZADA").length;
-  const tmr = avgResolutionHours(filtered);
   const sla = slaRate(filtered, 7);
   const taxa = conclusionRate(filtered);
   const backlog = pendentes + emAndamento;
@@ -870,21 +848,6 @@ function DashboardPage() {
             trend={taxa >= 70 ? "up" : "down"}
           />
           <KpiCard
-            label="TMR"
-            value={tmr ? `${tmr}h` : "—"}
-            icon={Timer}
-            color={tmr <= 48 ? C.done : tmr <= 72 ? C.pending : C.red}
-            bg={
-              tmr <= 48
-                ? "oklch(0.56 0.185 150 / 0.12)"
-                : "oklch(0.80 0.165 70 / 0.12)"
-            }
-            delay="delay-225"
-            sub="Tempo médio de resolução"
-            trendLabel={tmr <= 48 ? "Dentro do SLA" : "Acima do SLA"}
-            trend={tmr <= 48 ? "up" : "down"}
-          />
-          <KpiCard
             label="SLA 7 dias"
             value={`${sla}%`}
             icon={Zap}
@@ -1207,7 +1170,7 @@ function DashboardPage() {
                             {eq.equipe}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {eq.total} total · TMR {eq.tmr}h
+                            {eq.total} total
                           </p>
                         </div>
                         <div className="text-right shrink-0">
@@ -1280,66 +1243,6 @@ function DashboardPage() {
               </div>
             </SectionCard>
           </div>
-        )}
-
-        {/* ── TMR por equipe (bar chart horizontal) ───────────────────────── */}
-        {isAdmin && equipeData.length > 0 && (
-          <SectionCard
-            title="Tempo Médio de Resolução por Equipe (horas)"
-            icon={Timer}
-          >
-            <div className="p-5 h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={equipeData}
-                  layout="vertical"
-                  margin={{ top: 0, right: 40, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="oklch(0.868 0.014 245 / 0.5)"
-                    horizontal={false}
-                  />
-                  <XAxis
-                    type="number"
-                    tick={{ fontSize: 11, fill: "#94a3b8" }}
-                    axisLine={false}
-                    tickLine={false}
-                    unit="h"
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="equipe"
-                    tick={{ fontSize: 11, fill: "#94a3b8" }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={60}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar
-                    dataKey="tmr"
-                    name="TMR (horas)"
-                    radius={[0, 4, 4, 0]}
-                    maxBarSize={24}
-                    isAnimationActive={false}
-                  >
-                    {equipeData.map((eq, i) => (
-                      <Cell
-                        key={i}
-                        fill={
-                          eq.tmr <= 48
-                            ? C.hDone
-                            : eq.tmr <= 72
-                              ? C.hPending
-                              : C.hRed
-                        }
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </SectionCard>
         )}
 
         {/* ── Listas pendentes / em andamento ─────────────────────────────── */}

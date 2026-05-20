@@ -21,7 +21,6 @@ type OcorrenciaRow = {
   finalized_by: string | null;
   reopened_at: string | null;
   reopened_by: string | null;
-  equipe_atribuida_at: string | null;
   equipes: {
     id: string;
     nome: string;
@@ -60,7 +59,6 @@ export type OcorrenciaUpdate = {
   finalized_by?: string | null;
   reopened_at?: string | null;
   reopened_by?: string | null;
-  equipe_atribuida_at?: string | null;
 };
 
 function mapRow(row: OcorrenciaRow): Ocorrencia {
@@ -85,14 +83,13 @@ function mapRow(row: OcorrenciaRow): Ocorrencia {
     finalized_by: row.finalized_by,
     reopened_at: row.reopened_at,
     reopened_by: row.reopened_by,
-    equipe_atribuida_at: row.equipe_atribuida_at,
   };
 }
 
 const OCORRENCIA_SELECT = `
   id, id_ocorrencia, municipio, cabo_primaria, at, nome_at, contratada, gerente_icomon,
   operador_id, equipe_id, assigned_to, status, created_at, updated_at, created_by,
-  finalized_at, finalized_by, reopened_at, reopened_by, equipe_atribuida_at,
+  finalized_at, finalized_by, reopened_at, reopened_by,
   equipes (id, nome, ativa, created_at, updated_at)
 `;
 
