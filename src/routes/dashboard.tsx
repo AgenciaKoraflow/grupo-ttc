@@ -349,6 +349,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 
 type Period = "semana" | "mes" | "ano" | "custom";
 type AppliedRange = { from: Date; to: Date };
+type DateBasis = "created" | "finalized";
 
 const QUICK_PERIODS = ["semana", "mes", "ano"] as const;
 const PERIOD_LABELS: Record<(typeof QUICK_PERIODS)[number], string> = {
@@ -361,33 +362,37 @@ function filterByPeriod(
   ocs: Ocorrencia[],
   period: Period,
   custom?: AppliedRange | null,
+  basis: DateBasis = "created",
 ): Ocorrencia[] {
+  const timeOf = (o: Ocorrencia): number | null => {
+    const raw = basis === "finalized" ? o.finalized_at : o.created_at;
+    return raw ? new Date(raw).getTime() : null;
+  };
+  const passLower = (o: Ocorrencia, min: number) => {
+    const t = timeOf(o);
+    return t !== null && t >= min;
+  };
+
   if (period === "custom" && custom) {
     const from = custom.from.getTime();
     const to = custom.to.getTime() + 86_400_000 - 1;
     return ocs.filter((o) => {
-      const t = new Date(o.created_at).getTime();
-      return t >= from && t <= to;
+      const t = timeOf(o);
+      return t !== null && t >= from && t <= to;
     });
   }
   const now = Date.now();
   if (period === "semana")
-    return ocs.filter(
-      (o) => new Date(o.created_at).getTime() >= now - 7 * 86_400_000,
-    );
+    return ocs.filter((o) => passLower(o, now - 7 * 86_400_000));
   if (period === "mes") {
     const d = new Date();
-    return ocs.filter(
-      (o) =>
-        new Date(o.created_at).getTime() >=
-        new Date(d.getFullYear(), d.getMonth(), 1).getTime(),
+    return ocs.filter((o) =>
+      passLower(o, new Date(d.getFullYear(), d.getMonth(), 1).getTime()),
     );
   }
   if (period === "ano")
-    return ocs.filter(
-      (o) =>
-        new Date(o.created_at).getTime() >=
-        new Date(new Date().getFullYear(), 0, 1).getTime(),
+    return ocs.filter((o) =>
+      passLower(o, new Date(new Date().getFullYear(), 0, 1).getTime()),
     );
   return ocs;
 }
@@ -450,15 +455,16 @@ function DashboardPage() {
   >(undefined);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedEquipeId, setSelectedEquipeId] = useState<string>("");
+  const [dateBasis, setDateBasis] = useState<DateBasis>("created");
 
   const allVisible = useMemo(
     () =>
       isAdmin
         ? ocorrencias
         : ocorrencias.filter(
-            (o) =>
-              o.equipe_id === user?.equipe_id || o.assigned_to === user?.id,
-          ),
+          (o) =>
+            o.equipe_id === user?.equipe_id || o.assigned_to === user?.id,
+        ),
     [isAdmin, ocorrencias, user?.equipe_id, user?.id],
   );
 
@@ -471,8 +477,8 @@ function DashboardPage() {
   );
 
   const filtered = useMemo(
-    () => filterByPeriod(filteredByEquipe, period, appliedRange),
-    [filteredByEquipe, period, appliedRange],
+    () => filterByPeriod(filteredByEquipe, period, appliedRange, dateBasis),
+    [filteredByEquipe, period, appliedRange, dateBasis],
   );
 
   const periodLabel =
@@ -555,7 +561,7 @@ function DashboardPage() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {isAdmin
-                ? "Visão consolidada · Field Service Management"
+                ? "Visão consolidada"
                 : `Equipe: ${equipes.find((e) => e.id === user?.equipe_id)?.nome ?? "Sem equipe"}`}
             </p>
           </div>
@@ -563,6 +569,41 @@ function DashboardPage() {
           {/* Filters: period + equipe */}
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2 flex-wrap justify-end">
+              {/* Date basis toggle */}
+              <div
+                className="flex items-center gap-1 p-1 rounded-xl border border-border/60 bg-card"
+                role="group"
+                aria-label="Base de data do filtro"
+              >
+                {([
+                  { key: "created", label: "Todos" },
+                  { key: "finalized", label: "Finalização" },
+                ] as const).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setDateBasis(key)}
+                    aria-pressed={dateBasis === key}
+                    className={cn(
+                      "px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      dateBasis === key
+                        ? "text-white"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                    style={
+                      dateBasis === key
+                        ? {
+                          background:
+                            "linear-gradient(135deg, oklch(0.50 0.225 255), oklch(0.44 0.245 272))",
+                          boxShadow: "0 2px 8px oklch(0.50 0.225 255 / 0.35)",
+                        }
+                        : undefined
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               {/* Quick pills */}
               <div
                 className="flex items-center gap-1 p-1 rounded-xl border border-border/60 bg-card"
@@ -586,10 +627,10 @@ function DashboardPage() {
                     style={
                       period === p
                         ? {
-                            background:
-                              "linear-gradient(135deg, oklch(0.50 0.225 255), oklch(0.44 0.245 272))",
-                            boxShadow: "0 2px 8px oklch(0.50 0.225 255 / 0.35)",
-                          }
+                          background:
+                            "linear-gradient(135deg, oklch(0.50 0.225 255), oklch(0.44 0.245 272))",
+                          boxShadow: "0 2px 8px oklch(0.50 0.225 255 / 0.35)",
+                        }
                         : undefined
                     }
                   >
@@ -620,10 +661,10 @@ function DashboardPage() {
                     style={
                       period === "custom"
                         ? {
-                            background:
-                              "linear-gradient(135deg, oklch(0.50 0.225 255), oklch(0.44 0.245 272))",
-                            boxShadow: "0 2px 8px oklch(0.50 0.225 255 / 0.35)",
-                          }
+                          background:
+                            "linear-gradient(135deg, oklch(0.50 0.225 255), oklch(0.44 0.245 272))",
+                          boxShadow: "0 2px 8px oklch(0.50 0.225 255 / 0.35)",
+                        }
                         : undefined
                     }
                   >
@@ -1398,9 +1439,9 @@ function DashboardPage() {
                       Number(m.total) % 1 === 0
                         ? Number(m.total).toLocaleString("pt-BR")
                         : Number(m.total).toLocaleString("pt-BR", {
-                            minimumFractionDigits: 1,
-                            maximumFractionDigits: 3,
-                          });
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 3,
+                        });
                     return (
                       <div key={m.id} className="space-y-1.5">
                         <div className="flex items-center justify-between text-xs">
