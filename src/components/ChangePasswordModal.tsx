@@ -1,11 +1,9 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from '@/components/ui/dialog';
 import { Lock, AlertCircle } from 'lucide-react';
 
 export function ChangePasswordModal() {
@@ -47,29 +45,43 @@ export function ChangePasswordModal() {
 
   if (!needsPasswordChange || !user) return null;
 
-  return (
-    <Dialog open={needsPasswordChange} onOpenChange={() => {}}>
-      <DialogContent className="fixed" onPointerDownOutside={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: 'oklch(0.50 0.225 255 / 0.12)' }}>
-              <Lock className="h-5 w-5" style={{ color: 'oklch(0.50 0.225 255)' }} />
-            </div>
-            <div>
-              <DialogTitle>Trocar Senha</DialogTitle>
-              <DialogDescription className="text-xs mt-0.5">Primeiro acesso: defina uma nova senha</DialogDescription>
-            </div>
+  return createPortal(
+    // Overlay — inline styles garantem que não pode ser contornado via CSS externo
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backdropFilter: 'blur(20px) brightness(0.55)',
+        WebkitBackdropFilter: 'blur(20px) brightness(0.55)',
+        backgroundColor: 'rgba(0, 0, 0, 0.55)',
+      }}
+    >
+      <div className="relative mx-4 w-full max-w-md rounded-xl border bg-background p-6 shadow-2xl">
+        <div className="flex items-center gap-3 mb-5">
+          <div
+            className="h-10 w-10 rounded-lg flex items-center justify-center"
+            style={{ background: 'oklch(0.50 0.225 255 / 0.12)' }}
+          >
+            <Lock className="h-5 w-5" style={{ color: 'oklch(0.50 0.225 255)' }} />
           </div>
-        </DialogHeader>
-
-        <div className="space-y-4 py-2">
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
-            <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-            <p className="text-xs text-amber-800">
-              Você está acessando o sistema pela primeira vez. É necessário trocar sua senha temporária por uma permanente.
-            </p>
+          <div>
+            <h2 className="text-lg font-semibold leading-none tracking-tight">Trocar Senha</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Primeiro acesso: defina uma nova senha</p>
           </div>
+        </div>
 
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 mb-4">
+          <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-800">
+            Você está acessando o sistema pela primeira vez. É necessário trocar sua senha temporária por uma permanente.
+          </p>
+        </div>
+
+        <div className="space-y-4 mb-4">
           <div>
             <Label htmlFor="new-password" className="text-sm font-medium">Nova Senha</Label>
             <Input
@@ -95,33 +107,32 @@ export function ChangePasswordModal() {
               className="mt-1.5"
             />
           </div>
-
-          {error && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
-              <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
-              <p className="text-xs text-red-800">{error}</p>
-            </div>
-          )}
         </div>
 
-        <DialogFooter>
-          <Button
-            onClick={handleChangePassword}
-            disabled={loading}
-            style={{ background: 'linear-gradient(135deg, oklch(0.50 0.225 255), oklch(0.44 0.245 272))' }}
-            className="w-full"
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Salvando...
-              </span>
-            ) : (
-              'Trocar Senha e Acessar'
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        {error && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 mb-4">
+            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+            <p className="text-xs text-red-800">{error}</p>
+          </div>
+        )}
+
+        <Button
+          onClick={handleChangePassword}
+          disabled={loading}
+          style={{ background: 'linear-gradient(135deg, oklch(0.50 0.225 255), oklch(0.44 0.245 272))' }}
+          className="w-full"
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Salvando...
+            </span>
+          ) : (
+            'Trocar Senha e Acessar'
+          )}
+        </Button>
+      </div>
+    </div>,
+    document.body
   );
 }

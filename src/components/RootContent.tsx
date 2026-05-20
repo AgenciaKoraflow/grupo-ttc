@@ -6,7 +6,7 @@ import { ChangePasswordModal } from '@/components/ChangePasswordModal';
 import { Toaster } from '@/components/ui/sonner';
 
 export function RootContent() {
-  const { user } = useAuth();
+  const { user, needsPasswordChange } = useAuth();
   const { addLog } = useLog();
 
   useEffect(() => {
@@ -28,7 +28,17 @@ export function RootContent() {
     <>
       <Toaster richColors position="top-right" />
       <ChangePasswordModal />
-      <Outlet />
+      <div
+        style={needsPasswordChange ? {
+          filter: 'blur(16px)',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          overflow: 'hidden',
+        } : undefined}
+        aria-hidden={needsPasswordChange || undefined}
+      >
+        <Outlet />
+      </div>
     </>
   );
 }
