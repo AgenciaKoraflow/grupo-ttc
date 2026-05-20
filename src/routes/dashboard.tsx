@@ -95,13 +95,17 @@ function diffDays(a: string, b: string) {
   );
 }
 
-function avgResolutionDays(ocs: Ocorrencia[]): number {
+function diffHours(a: string, b: string) {
+  return (new Date(b).getTime() - new Date(a).getTime()) / 3_600_000;
+}
+
+function avgResolutionHours(ocs: Ocorrencia[]): number {
   const finalizadas = ocs.filter(
-    (o) => o.status === "FINALIZADA" && o.finalized_at,
+    (o) => o.status === "FINALIZADA" && o.finalized_at && o.equipe_atribuida_at,
   );
   if (!finalizadas.length) return 0;
   const total = finalizadas.reduce(
-    (acc, o) => acc + diffDays(o.created_at, o.finalized_at!),
+    (acc, o) => acc + diffHours(o.equipe_atribuida_at!, o.finalized_at!),
     0,
   );
   return Math.round((total / finalizadas.length) * 10) / 10;
@@ -181,7 +185,7 @@ function byEquipe(ocs: Ocorrencia[], equipes: { id: string; nome: string }[]) {
         finalizadas: eqOcs.filter((o) => o.status === "FINALIZADA").length,
         pendentes: eqOcs.filter((o) => o.status === "PENDENTE").length,
         em_andamento: eqOcs.filter((o) => o.status === "EM_ANDAMENTO").length,
-        tmr: avgResolutionDays(eqOcs),
+        tmr: avgResolutionHours(eqOcs),
         taxa: conclusionRate(eqOcs),
       };
     })
@@ -209,7 +213,7 @@ function byOperador(
         nomeCompleto: p.nome,
         total: pOcs.length,
         finalizadas: finalizadas.length,
-        tmr: avgResolutionDays(
+        tmr: avgResolutionHours(
           finalizadas.length ? ocs.filter((o) => o.finalized_by === p.id) : [],
         ),
         taxa: pOcs.length
@@ -508,7 +512,7 @@ function DashboardPage() {
     (o) => o.status === "EM_ANDAMENTO",
   ).length;
   const finalizadas = filtered.filter((o) => o.status === "FINALIZADA").length;
-  const tmr = avgResolutionDays(filtered);
+  const tmr = avgResolutionHours(filtered);
   const sla = slaRate(filtered, 7);
   const taxa = conclusionRate(filtered);
   const backlog = pendentes + emAndamento;
@@ -867,18 +871,18 @@ function DashboardPage() {
           />
           <KpiCard
             label="TMR"
-            value={tmr ? `${tmr}d` : "—"}
+            value={tmr ? `${tmr}h` : "—"}
             icon={Timer}
-            color={tmr <= 5 ? C.done : tmr <= 10 ? C.pending : C.red}
+            color={tmr <= 48 ? C.done : tmr <= 72 ? C.pending : C.red}
             bg={
-              tmr <= 5
+              tmr <= 48
                 ? "oklch(0.56 0.185 150 / 0.12)"
                 : "oklch(0.80 0.165 70 / 0.12)"
             }
             delay="delay-225"
             sub="Tempo médio de resolução"
-            trendLabel={tmr <= 7 ? "Dentro do SLA" : "Acima do SLA"}
-            trend={tmr <= 7 ? "up" : "down"}
+            trendLabel={tmr <= 48 ? "Dentro do SLA" : "Acima do SLA"}
+            trend={tmr <= 48 ? "up" : "down"}
           />
           <KpiCard
             label="SLA 7 dias"
@@ -1203,7 +1207,7 @@ function DashboardPage() {
                             {eq.equipe}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {eq.total} total · TMR {eq.tmr}d
+                            {eq.total} total · TMR {eq.tmr}h
                           </p>
                         </div>
                         <div className="text-right shrink-0">
@@ -1225,7 +1229,7 @@ function DashboardPage() {
 
             {/* Top ATs */}
             <SectionCard
-              title="Top ATs"
+              title="Top 5 ATs"
               icon={BarChart3}
               className="lg:col-span-1"
             >
@@ -1281,7 +1285,7 @@ function DashboardPage() {
         {/* ── TMR por equipe (bar chart horizontal) ───────────────────────── */}
         {isAdmin && equipeData.length > 0 && (
           <SectionCard
-            title="Tempo Médio de Resolução por Equipe (dias)"
+            title="Tempo Médio de Resolução por Equipe (horas)"
             icon={Timer}
           >
             <div className="p-5 h-[200px]">
@@ -1301,7 +1305,7 @@ function DashboardPage() {
                     tick={{ fontSize: 11, fill: "#94a3b8" }}
                     axisLine={false}
                     tickLine={false}
-                    unit="d"
+                    unit="h"
                   />
                   <YAxis
                     type="category"
@@ -1314,7 +1318,7 @@ function DashboardPage() {
                   <Tooltip content={<CustomTooltip />} />
                   <Bar
                     dataKey="tmr"
-                    name="TMR (dias)"
+                    name="TMR (horas)"
                     radius={[0, 4, 4, 0]}
                     maxBarSize={24}
                     isAnimationActive={false}
@@ -1323,9 +1327,9 @@ function DashboardPage() {
                       <Cell
                         key={i}
                         fill={
-                          eq.tmr <= 5
+                          eq.tmr <= 48
                             ? C.hDone
-                            : eq.tmr <= 10
+                            : eq.tmr <= 72
                               ? C.hPending
                               : C.hRed
                         }

@@ -229,6 +229,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         finalized_by: null,
         reopened_at: null,
         reopened_by: null,
+        equipe_atribuida_at: null,
       });
       insertPayloads.push(payload);
       count++;
@@ -283,6 +284,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           finalized_by: null,
           reopened_at: null,
           reopened_by: null,
+          equipe_atribuida_at: null,
         });
         insertPayloads.push(insertPayload);
         seenInBatch.add(item.id_ocorrencia);
@@ -345,10 +347,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const vincularEquipe = useCallback((ocorrenciaId: string, equipeId: string | null) => {
     const eq = equipeId ? equipes.find(e => e.id === equipeId) : undefined;
     const now = new Date().toISOString();
+    const target = ocorrenciasRef.current.find(o => o.id === ocorrenciaId);
+    const setAtribuida = equipeId !== null && target != null && !target.equipe_atribuida_at;
+    const atribuida = setAtribuida ? now : undefined;
     setOcorrencias(prev => prev.map(o =>
-      o.id === ocorrenciaId ? { ...o, equipe_id: equipeId, equipe: eq, updated_at: now } : o
+      o.id === ocorrenciaId
+        ? { ...o, equipe_id: equipeId, equipe: eq, updated_at: now,
+            equipe_atribuida_at: atribuida ?? o.equipe_atribuida_at }
+        : o
     ));
-    void OcorrenciasService.updateOcorrencia(ocorrenciaId, { equipe_id: equipeId, updated_at: now });
+    const update: Parameters<typeof OcorrenciasService.updateOcorrencia>[1] = { equipe_id: equipeId, updated_at: now };
+    if (atribuida) update.equipe_atribuida_at = atribuida;
+    void OcorrenciasService.updateOcorrencia(ocorrenciaId, update);
   }, [equipes]);
 
   const designarOperador = useCallback((ocorrenciaId: string, operadorId: string | null) => {
