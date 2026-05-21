@@ -371,16 +371,10 @@ function filterByPeriod(
   const now = Date.now();
   if (period === "semana")
     return ocs.filter((o) => passLower(o, now - 7 * 86_400_000));
-  if (period === "mes") {
-    const d = new Date();
-    return ocs.filter((o) =>
-      passLower(o, new Date(d.getFullYear(), d.getMonth(), 1).getTime()),
-    );
-  }
+  if (period === "mes")
+    return ocs.filter((o) => passLower(o, now - 30 * 86_400_000));
   if (period === "ano")
-    return ocs.filter((o) =>
-      passLower(o, new Date(new Date().getFullYear(), 0, 1).getTime()),
-    );
+    return ocs.filter((o) => passLower(o, now - 365 * 86_400_000));
   return ocs;
 }
 
@@ -474,8 +468,8 @@ function DashboardPage() {
       : period === "semana"
         ? "Últimos 7 dias"
         : period === "mes"
-          ? "Este mês"
-          : "Este ano";
+          ? "Últimos 30 dias"
+          : "Último ano";
 
   // KPIs
   const total = filtered.length;
