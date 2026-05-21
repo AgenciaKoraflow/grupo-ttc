@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DocumentacaoRouteImport } from './routes/documentacao'
 import { Route as MateriaisRouteImport } from './routes/materiais'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as TiposServicoRouteImport } from './routes/tipos-servico'
@@ -22,6 +23,11 @@ import { Route as OcorrenciasIndexRouteImport } from './routes/ocorrencias.index
 import { Route as OcorrenciasIdIndexRouteImport } from './routes/ocorrencias.$id.index'
 import { Route as OcorrenciasIdRelatorioRouteImport } from './routes/ocorrencias.$id.relatorio'
 
+const DocumentacaoRoute = DocumentacaoRouteImport.update({
+  id: '/documentacao',
+  path: '/documentacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MateriaisRoute = MateriaisRouteImport.update({
   id: '/materiais',
   path: '/materiais',
@@ -86,6 +92,7 @@ const OcorrenciasIdRelatorioRoute = OcorrenciasIdRelatorioRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/documentacao': typeof DocumentacaoRoute
   '/equipes': typeof EquipesRoute
   '/importar-csv': typeof ImportarCsvRoute
   '/login': typeof LoginRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/documentacao': typeof DocumentacaoRoute
   '/equipes': typeof EquipesRoute
   '/importar-csv': typeof ImportarCsvRoute
   '/login': typeof LoginRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/documentacao': typeof DocumentacaoRoute
   '/equipes': typeof EquipesRoute
   '/importar-csv': typeof ImportarCsvRoute
   '/login': typeof LoginRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/documentacao'
     | '/equipes'
     | '/importar-csv'
     | '/login'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/documentacao'
     | '/equipes'
     | '/importar-csv'
     | '/login'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/documentacao'
     | '/equipes'
     | '/importar-csv'
     | '/login'
@@ -174,6 +186,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  DocumentacaoRoute: typeof DocumentacaoRoute
   EquipesRoute: typeof EquipesRoute
   ImportarCsvRoute: typeof ImportarCsvRoute
   LoginRoute: typeof LoginRoute
@@ -188,6 +201,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/documentacao': {
+      id: '/documentacao'
+      path: '/documentacao'
+      fullPath: '/documentacao'
+      preLoaderRoute: typeof DocumentacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/usuarios': {
       id: '/usuarios'
       path: '/usuarios'
@@ -278,6 +298,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  DocumentacaoRoute: DocumentacaoRoute,
   EquipesRoute: EquipesRoute,
   ImportarCsvRoute: ImportarCsvRoute,
   LoginRoute: LoginRoute,

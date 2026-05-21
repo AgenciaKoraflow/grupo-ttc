@@ -8,6 +8,7 @@ import {
   LogOut,
   History,
   Package,
+  BookOpen,
 } from "lucide-react";
 import {
   Sidebar,
@@ -33,6 +34,7 @@ const adminItems = [
   { title: "Tipos de Serviço", url: "/tipos-servico", icon: Wrench },
   { title: "Materiais", url: "/materiais", icon: Package },
   { title: "Logs", url: "/logs", icon: History },
+  { title: "Documentação", url: "/documentacao", icon: BookOpen },
 ];
 
 const supervisorItems = [
