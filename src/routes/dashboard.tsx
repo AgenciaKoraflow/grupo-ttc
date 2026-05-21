@@ -112,10 +112,12 @@ function slaRate(ocs: Ocorrencia[], slaDays = 7): number {
   return Math.round((dentro.length / finalizadas.length) * 100);
 }
 
-function volumeByMonth(ocs: Ocorrencia[]) {
+function volumeByMonth(ocs: Ocorrencia[], basis: DateBasis = "created") {
   const map: Record<string, { criadas: number; finalizadas: number }> = {};
   ocs.forEach((o) => {
-    const d = new Date(o.created_at);
+    const raw = basis === "finalized" ? o.finalized_at : o.created_at;
+    if (!raw) return;
+    const d = new Date(raw);
     const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
     if (!map[key]) map[key] = { criadas: 0, finalizadas: 0 };
     map[key].criadas++;
@@ -129,11 +131,13 @@ function volumeByMonth(ocs: Ocorrencia[]) {
     }));
 }
 
-function volumeByWeekDay(ocs: Ocorrencia[]) {
+function volumeByWeekDay(ocs: Ocorrencia[], basis: DateBasis = "created") {
   const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   const count = Array(7).fill(0);
   ocs.forEach((o) => {
-    count[new Date(o.created_at).getDay()]++;
+    const raw = basis === "finalized" ? o.finalized_at : o.created_at;
+    if (!raw) return;
+    count[new Date(raw).getDay()]++;
   });
   return days.map((d, i) => ({ dia: d, ocorrencias: count[i] }));
 }
@@ -459,21 +463,10 @@ function DashboardPage() {
     [allVisible, selectedEquipeId],
   );
 
-  const filtered = useMemo(() => {
-    if (dateBasis === "finalized") {
-      const finalizadasNoPeriodo = filterByPeriod(
-        filteredByEquipe,
-        period,
-        appliedRange,
-        "finalized",
-      );
-      const backlogAtual = filteredByEquipe.filter(
-        (o) => o.status === "PENDENTE" || o.status === "EM_ANDAMENTO",
-      );
-      return [...backlogAtual, ...finalizadasNoPeriodo];
-    }
-    return filterByPeriod(filteredByEquipe, period, appliedRange, "created");
-  }, [filteredByEquipe, period, appliedRange, dateBasis]);
+  const filtered = useMemo(
+    () => filterByPeriod(filteredByEquipe, period, appliedRange, dateBasis),
+    [filteredByEquipe, period, appliedRange, dateBasis],
+  );
 
   const periodLabel =
     period === "custom" && appliedRange
@@ -496,8 +489,14 @@ function DashboardPage() {
   const backlog = pendentes + emAndamento;
 
   // Gráficos
-  const monthData = useMemo(() => volumeByMonth(filtered), [filtered]);
-  const weekData = useMemo(() => volumeByWeekDay(filtered), [filtered]);
+  const monthData = useMemo(
+    () => volumeByMonth(filtered, dateBasis),
+    [filtered, dateBasis],
+  );
+  const weekData = useMemo(
+    () => volumeByWeekDay(filtered, dateBasis),
+    [filtered, dateBasis],
+  );
   const pieData = useMemo(() => statusPieData(filtered), [filtered]);
   const equipeData = useMemo(
     () => byEquipe(filtered, equipes),
@@ -932,16 +931,18 @@ function DashboardPage() {
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                    <Area
-                      type="monotone"
-                      dataKey="criadas"
-                      name="Criadas"
-                      stroke={C.hPrimary}
-                      strokeWidth={2}
-                      fill="url(#gCriadas)"
-                      dot={{ r: 3, fill: C.hPrimary }}
-                      isAnimationActive={false}
-                    />
+                    {dateBasis === "created" && (
+                      <Area
+                        type="monotone"
+                        dataKey="criadas"
+                        name="Criadas"
+                        stroke={C.hPrimary}
+                        strokeWidth={2}
+                        fill="url(#gCriadas)"
+                        dot={{ r: 3, fill: C.hPrimary }}
+                        isAnimationActive={false}
+                      />
+                    )}
                     <Area
                       type="monotone"
                       dataKey="finalizadas"
