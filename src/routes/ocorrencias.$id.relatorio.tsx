@@ -328,7 +328,7 @@ function RelatorioPage() {
               ["ID PRIMÁRIA", oc.id_ocorrencia],
               ["MUNICÍPIO", oc.municipio],
               ["AT", oc.at || "—"],
-              ["CABO/PRIMÁRIA", oc.cabo_primaria || "—"],
+              ["FOLHA", oc.cabo_primaria || "—"],
               ["NOME AT", oc.nome_at || "—"],
               ["CONTRATADA", oc.contratada || "—"],
               ["EQUIPE", oc.equipe?.nome || "—"],
@@ -570,7 +570,7 @@ function RelatorioPage() {
                 <InfoField icon={Tag} label="AT" value={oc.at || "—"} />
                 <InfoField
                   icon={Tag}
-                  label="CABO/PRIMÁRIA"
+                  label="FOLHA"
                   value={oc.cabo_primaria || "—"}
                 />
                 <InfoField

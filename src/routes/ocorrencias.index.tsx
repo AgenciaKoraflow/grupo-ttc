@@ -8,8 +8,10 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import {
   Search, FileText, SlidersHorizontal, Upload,
   CheckCircle, AlertCircle, MinusCircle, FileUp, X,
@@ -112,7 +114,7 @@ function rowsFromMatrix(
       message = 'ID duplicado';
     } else if (cabo && (existingCabos.has(cabo) || seenCabos.has(cabo))) {
       rowStatus = 'cabo_duplicate';
-      message = 'Cabo/Primária já cadastrado';
+      message = 'Folha já cadastrada';
     } else {
       seenIds.add(id_oc);
       if (cabo) seenCabos.add(cabo);
@@ -425,8 +427,8 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
                   <XCircle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: 'oklch(0.50 0.22 350)' }} />
                   <p className="text-xs leading-relaxed" style={{ color: 'oklch(0.38 0.18 350)' }}>
                     <span className="font-semibold">{caboCount} registro{caboCount > 1 ? 's' : ''} bloqueado{caboCount > 1 ? 's' : ''}:</span>{' '}
-                    Cabo/Primária já cadastrado no sistema. Esses registros não serão importados.
-                    Corrija o Cabo/Primária na planilha para incluí-los.
+                    Folha já cadastrada no sistema. Esses registros não serão importados.
+                    Corrija a Folha na planilha para incluí-los.
                   </p>
                 </div>
               )}
@@ -477,7 +479,7 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
                   <span>#</span>
                   <span>ID Ocorr.</span>
                   <span>Município</span>
-                  <span>Cabo/Primária</span>
+                  <span>Folha</span>
                   <span>AT</span>
                   <span>Contratada</span>
                   <span>Nome AT</span>
@@ -550,7 +552,7 @@ function ImportDialog({ open, onClose }: { open: boolean; onClose: () => void })
                   { label: 'Novos importados', value: importResult.imported, color: 'oklch(0.56 0.185 150)', bg: 'oklch(0.56 0.185 150 / 0.10)', border: 'oklch(0.56 0.185 150 / 0.25)' },
                   { label: 'Atualizados', value: importResult.replaced, color: 'oklch(0.38 0.14 235)', bg: 'oklch(0.55 0.18 235 / 0.10)', border: 'oklch(0.55 0.18 235 / 0.25)' },
                   { label: 'Ignorados', value: importResult.skipped, color: 'oklch(0.46 0.028 252)', bg: 'oklch(0.935 0.014 245)', border: 'oklch(0.868 0.014 245)' },
-                  { label: 'Cabo/Primária dup.', value: caboCount, color: 'oklch(0.50 0.22 350)', bg: 'oklch(0.60 0.22 350 / 0.07)', border: 'oklch(0.60 0.22 350 / 0.25)' },
+                  { label: 'Folha dup.', value: caboCount, color: 'oklch(0.50 0.22 350)', bg: 'oklch(0.60 0.22 350 / 0.07)', border: 'oklch(0.60 0.22 350 / 0.25)' },
                   { label: 'Erros (ID vazio)', value: importResult.errors, color: 'oklch(0.50 0.235 27)', bg: 'oklch(0.50 0.235 27 / 0.08)', border: 'oklch(0.50 0.235 27 / 0.20)' },
                 ].map(({ label, value, color, bg, border }) => (
                   <div key={label} className="rounded-xl p-3.5" style={{ background: bg, border: `1px solid ${border}` }}>
@@ -599,7 +601,7 @@ function exportCSV(rows: { id_ocorrencia: string; municipio: string; cabo_primar
     EM_ANDAMENTO: 'Em Andamento',
     FINALIZADA: 'Finalizada',
   };
-  const headers = ['ID Ocorrência', 'Município', 'Cabo/Primária', 'AT', 'Nome AT', 'Contratada', 'Data Finalização', 'Equipe', 'Status', 'Gerente'];
+  const headers = ['ID Ocorrência', 'Município', 'Folha', 'AT', 'Nome AT', 'Contratada', 'Data Finalização', 'Equipe', 'Status', 'Gerente'];
   const escape = (v: string | null | undefined) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const dataRows = rows.map(o => [
     o.id_ocorrencia,
@@ -663,7 +665,7 @@ function OcorrenciasPage() {
   usePageTitle("Ocorrências");
   const { user, isAdmin, isSupervisor, canDelete, canCreate } = useAuth();
   const isAdminOrSupervisor = isAdmin || isSupervisor;
-  const { ocorrencias, equipes, profiles, vincularEquipe, designarOperador, deleteOcorrencia } = useData();
+  const { ocorrencias, equipes, profiles, vincularEquipe, designarOperador, deleteOcorrencia, deleteOcorrencias } = useData();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -683,6 +685,9 @@ function OcorrenciasPage() {
   const [editingEquipeId, setEditingEquipeId] = useState<string | null>(null);
   const [sortCol, setSortCol] = useState<SortCol | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showExcluirSelecionadas, setShowExcluirSelecionadas] = useState(false);
+  const [excluindoSelecionadas, setExcluindoSelecionadas] = useState(false);
 
   const handleSort = useCallback((col: SortCol) => {
     if (sortCol === col) {
@@ -692,6 +697,7 @@ function OcorrenciasPage() {
       setSortDir('asc');
     }
     setPage(0);
+    setSelectedIds(new Set());
   }, [sortCol]);
 
   const ocorrenciaAtual = useMemo(
@@ -776,13 +782,60 @@ function OcorrenciasPage() {
   const PAGE_SIZE = 25;
   const [page, setPage] = useState(0);
 
-  useEffect(() => { setPage(0); }, [search, statusFilter, statusViewFilter, equipeFilter, atFilter, operadorFilter, periodoFilter, dataInicialFilter, dataFinalFilter]);
+  useEffect(() => {
+    setPage(0);
+    setSelectedIds(new Set());
+  }, [search, statusFilter, statusViewFilter, equipeFilter, atFilter, operadorFilter, periodoFilter, dataInicialFilter, dataFinalFilter]);
+
+  useEffect(() => { setSelectedIds(new Set()); }, [page]);
 
   const paginatedFiltered = useMemo(
     () => filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
     [filtered, page],
   );
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+
+  const toggleSelected = useCallback((id: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAllVisible = useCallback((checked: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (checked) paginatedFiltered.forEach(o => next.add(o.id));
+      else paginatedFiltered.forEach(o => next.delete(o.id));
+      return next;
+    });
+  }, [paginatedFiltered]);
+
+  const allVisibleSelected = paginatedFiltered.length > 0 && paginatedFiltered.every(o => selectedIds.has(o.id));
+
+  const desktopGridCols = canDelete
+    ? '28px 1.5fr 1.2fr 1.2fr 0.7fr 1fr 1fr 1.2fr 0.8fr 1.1fr 1.3fr'
+    : '1.5fr 1.2fr 1.2fr 0.7fr 1fr 1fr 1.2fr 0.8fr 1.1fr 1.3fr';
+
+  const handleExcluirSelecionadas = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setExcluindoSelecionadas(true);
+    try {
+      await deleteOcorrencias(ids);
+      toast.success(`${ids.length} ${ids.length === 1 ? "ocorrência excluída" : "ocorrências excluídas"}`);
+      setSelectedIds(new Set());
+      setShowExcluirSelecionadas(false);
+    } catch (error) {
+      console.error("Erro ao excluir ocorrências selecionadas:", error);
+      toast.error("Falha ao excluir", {
+        description: "Não foi possível excluir as ocorrências selecionadas. Tente novamente.",
+      });
+    } finally {
+      setExcluindoSelecionadas(false);
+    }
+  };
 
   return (
     <AppLayout>
@@ -821,6 +874,36 @@ function OcorrenciasPage() {
             )}
           </div>
         </div>
+
+        {/* Barra de ação em massa */}
+        {canDelete && selectedIds.size > 0 && (
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-2.5 animate-fade-in"
+            style={{ background: 'oklch(0.60 0.22 350 / 0.06)', border: '1px solid oklch(0.60 0.22 350 / 0.2)' }}
+          >
+            <span className="text-sm font-medium" style={{ color: 'oklch(0.40 0.20 350)' }}>
+              {selectedIds.size} {selectedIds.size === 1 ? 'ocorrência selecionada' : 'ocorrências selecionadas'}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Limpar seleção
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-8 gap-2 text-xs"
+                onClick={() => setShowExcluirSelecionadas(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Excluir selecionadas
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Filtros */}
         <div
@@ -997,15 +1080,22 @@ function OcorrenciasPage() {
               <div
                 className="hidden md:grid gap-3 px-5 py-3 border-b border-border/60 items-center"
                 style={{
-                  gridTemplateColumns: '1.5fr 1.2fr 1.2fr 0.7fr 1fr 1fr 1.2fr 0.8fr 1.1fr 1.3fr',
+                  gridTemplateColumns: desktopGridCols,
                   background: 'oklch(0.972 0.004 245 / 0.7)',
                 }}
                 role="row"
                 aria-label="Cabeçalho da tabela"
               >
+                {canDelete && (
+                  <Checkbox
+                    checked={allVisibleSelected}
+                    onCheckedChange={(checked) => toggleSelectAllVisible(checked === true)}
+                    aria-label="Selecionar todos os registros desta página"
+                  />
+                )}
                 <SortHeader col="id_ocorrencia" label="ID Ocorrência" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
                 <SortHeader col="municipio" label="Município" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
-                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">Cabo/Primária</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">Folha</span>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">AT</span>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap hidden lg:block">Nome AT</span>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap hidden lg:block">Contratada</span>
@@ -1030,6 +1120,15 @@ function OcorrenciasPage() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {canDelete && (
+                            <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                              <Checkbox
+                                checked={selectedIds.has(oc.id)}
+                                onCheckedChange={(checked) => toggleSelected(oc.id, checked === true)}
+                                aria-label={`Selecionar ${oc.id_ocorrencia}`}
+                              />
+                            </div>
+                          )}
                           <div
                             className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
                             style={{ background: 'oklch(0.50 0.225 255 / 0.10)' }}
@@ -1044,7 +1143,7 @@ function OcorrenciasPage() {
                         <StatusBadge status={oc.status} />
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Cabo: <span className="text-foreground">{oc.cabo_primaria || '—'}</span>
+                        Folha: <span className="text-foreground">{oc.cabo_primaria || '—'}</span>
                         {oc.at && <span className="ml-3">AT: <span className="text-foreground">{oc.at}</span></span>}
                       </div>
                       {oc.status === 'FINALIZADA' && oc.finalized_at && (
@@ -1089,7 +1188,7 @@ function OcorrenciasPage() {
                     <div
                       className="hidden md:grid gap-3 px-5 py-3.5 items-center cursor-pointer transition-all duration-150 hover:bg-accent/40 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                       style={{
-                        gridTemplateColumns: '1.5fr 1.2fr 1.2fr 0.7fr 1fr 1fr 1.2fr 0.8fr 1.1fr 1.3fr',
+                        gridTemplateColumns: desktopGridCols,
                         background: idx % 2 !== 0 ? 'oklch(0.972 0.004 245 / 0.35)' : undefined,
                       }}
                       onClick={() => navigate({ to: '/ocorrencias/$id', params: { id: oc.id } })}
@@ -1098,6 +1197,15 @@ function OcorrenciasPage() {
                       aria-label={`Ocorrência ${oc.id_ocorrencia}, ${oc.municipio}`}
                       onKeyDown={(e) => e.key === 'Enter' && navigate({ to: '/ocorrencias/$id', params: { id: oc.id } })}
                     >
+                      {canDelete && (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(oc.id)}
+                            onCheckedChange={(checked) => toggleSelected(oc.id, checked === true)}
+                            aria-label={`Selecionar ${oc.id_ocorrencia}`}
+                          />
+                        </div>
+                      )}
                       <span className="text-sm font-semibold text-foreground truncate">{oc.id_ocorrencia}</span>
                       <span className="text-sm text-foreground/80 truncate">{oc.municipio}</span>
                       <span className="text-sm text-muted-foreground truncate">{oc.cabo_primaria || '—'}</span>
@@ -1269,9 +1377,17 @@ function OcorrenciasPage() {
                 <Button
                   variant="destructive"
                   className="flex-1"
-                  onClick={() => {
-                    if (ocorrenciaSelecionada) {
-                      deleteOcorrencia(ocorrenciaSelecionada);
+                  onClick={async () => {
+                    if (!ocorrenciaSelecionada) return;
+                    try {
+                      await deleteOcorrencia(ocorrenciaSelecionada);
+                      toast.success("Ocorrência excluída");
+                    } catch (error) {
+                      console.error("Erro ao excluir ocorrência:", error);
+                      toast.error("Falha ao excluir ocorrência", {
+                        description: "Tente novamente.",
+                      });
+                    } finally {
                       setShowExcluir(false);
                       setOcorrenciaSelecionada(null);
                     }
@@ -1279,6 +1395,43 @@ function OcorrenciasPage() {
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Excluir
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Exclusão em massa */}
+      <Dialog open={showExcluirSelecionadas} onOpenChange={setShowExcluirSelecionadas}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Excluir {selectedIds.size} {selectedIds.size === 1 ? "Ocorrência" : "Ocorrências"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Tem certeza que deseja excluir {selectedIds.size}{" "}
+              {selectedIds.size === 1 ? "ocorrência" : "ocorrências"}? Serviços, fotos e materiais
+              vinculados a elas também serão excluídos. Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3 mt-4">
+              <DialogClose asChild>
+                <Button variant="outline" className="flex-1" disabled={excluindoSelecionadas}>
+                  Cancelar
+                </Button>
+              </DialogClose>
+              {canDelete && (
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  disabled={excluindoSelecionadas}
+                  onClick={handleExcluirSelecionadas}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {excluindoSelecionadas ? "Excluindo..." : "Excluir"}
                 </Button>
               )}
             </div>

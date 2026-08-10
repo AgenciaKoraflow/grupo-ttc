@@ -562,7 +562,7 @@ function OcorrenciaDetailPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-5">
             <InfoItem label="Município" value={oc.municipio} icon={MapPin} />
             <InfoItem
-              label="Cabo/Primária"
+              label="Folha"
               value={oc.cabo_primaria || "—"}
               icon={Cable}
             />

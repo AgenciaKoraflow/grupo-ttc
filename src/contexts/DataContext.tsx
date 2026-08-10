@@ -58,6 +58,7 @@ interface DataStore {
   vincularEquipe: (ocorrenciaId: string, equipeId: string | null) => void;
   designarOperador: (ocorrenciaId: string, operadorId: string | null) => void;
   deleteOcorrencia: (id: string) => Promise<void>;
+  deleteOcorrencias: (ids: string[]) => Promise<void>;
   materials: Material[];
   ocorrenciaMateriais: OcorrenciaMaterial[];
   addMaterial: (data: { name: string; unit: string }) => Material;
@@ -428,6 +429,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [ocorrencias]);
 
+  const deleteOcorrencias = useCallback(async (ids: string[]): Promise<void> => {
+    const idSet = new Set(ids);
+    const removed = ocorrencias.filter(o => idSet.has(o.id));
+    setOcorrencias(prev => prev.filter(o => !idSet.has(o.id)));
+
+    try {
+      await OcorrenciasService.deleteOcorrencias(ids);
+    } catch (error) {
+      Sentry.captureException(error);
+      setOcorrencias(prev => [...removed, ...prev]);
+      throw error;
+    }
+  }, [ocorrencias]);
+
   // ─── Equipes ───────────────────────────────────────────────────────────────
 
   const addEquipe = useCallback((nome: string): Equipe => {
@@ -731,7 +746,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addTipoServico, updateTipoServico, deleteTipoServico, addServico, updateServico, deleteServico,
     addFotoServico, deleteFotoServico, addFotoFinal, deleteFotoFinal,
     finalizarOcorrencia, reabrirOcorrencia, addProfile, updateProfile, deleteProfile,
-    vincularEquipe, designarOperador, deleteOcorrencia,
+    vincularEquipe, designarOperador, deleteOcorrencia, deleteOcorrencias,
     addMaterial, updateMaterial, deleteMaterial,
     addOcorrenciaMaterial, removeOcorrenciaMaterial,
   }), [
@@ -742,7 +757,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     addTipoServico, updateTipoServico, deleteTipoServico, addServico, updateServico, deleteServico,
     addFotoServico, deleteFotoServico, addFotoFinal, deleteFotoFinal,
     finalizarOcorrencia, reabrirOcorrencia, addProfile, updateProfile, deleteProfile,
-    vincularEquipe, designarOperador, deleteOcorrencia,
+    vincularEquipe, designarOperador, deleteOcorrencia, deleteOcorrencias,
     addMaterial, updateMaterial, deleteMaterial,
     addOcorrenciaMaterial, removeOcorrenciaMaterial,
   ]);
