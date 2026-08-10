@@ -25,6 +25,10 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Logs/artefatos de scripts de migração one-off (scripts/migrate-fotos-base64.mjs,
+# scripts/reconcile-fotos.mjs) — pode conter imagens decodificadas (--log-payload)
+.migracao-logs/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

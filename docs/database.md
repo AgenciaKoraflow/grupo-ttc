@@ -93,7 +93,7 @@ Materiais utilizados em serviços específicos.
 | `storage_path` | text | Caminho no Supabase Storage |
 | `created_at` | timestamptz | |
 
-### `fotos_ocorrencia_final`
+### `fotos_finais`
 Fotos da conclusão da ocorrência.
 
 | Coluna | Tipo | Notas |
@@ -135,7 +135,7 @@ Buckets configurados no Supabase Storage:
 
 | Bucket | Uso | Acesso |
 |--------|-----|--------|
-| `fotos-servicos` | Fotos por serviço de ocorrência | Privado (signed URLs) |
+| `fotos-servico` | Fotos por serviço de ocorrência | Privado (signed URLs) |
 | `fotos-finais` | Fotos de conclusão | Privado (signed URLs) |
 
 ## Migrations

@@ -45,8 +45,17 @@ function safeExt(fileName: string): string {
   return ALLOWED_EXTENSIONS.has(raw) ? raw : "jpg";
 }
 
+/** Colunas explícitas — `url` é OMITIDO de propósito: é legado base64 no banco,
+ *  sempre substituído por signed URL fresco abaixo. Ver migration 010. */
+const COLS_FOTO_SERVICO =
+  "id, servico_id, tipo_foto, storage_path, file_name, mime_type, ordem, created_at";
+const COLS_FOTO_FINAL =
+  "id, ocorrencia_id, categoria, storage_path, file_name, mime_type, ordem, created_at";
+
 export async function fetchFotosServico(): Promise<FotoServico[]> {
-  const { data, error } = await supabase.from("fotos_servico").select("*");
+  const { data, error } = await supabase
+    .from("fotos_servico")
+    .select(COLS_FOTO_SERVICO);
   if (error) {
     console.error("[fotos.service] fetch fotos_servico:", error);
     return [];
@@ -70,7 +79,7 @@ export async function fetchFotosServicoByServicos(
 
   const { data, error } = await supabase
     .from("fotos_servico")
-    .select("*")
+    .select(COLS_FOTO_SERVICO)
     .in("servico_id", servicoIds);
 
   if (error) {
@@ -90,7 +99,9 @@ export async function fetchFotosServicoByServicos(
 }
 
 export async function fetchFotosFinais(): Promise<FotoOcorrenciaFinal[]> {
-  const { data, error } = await supabase.from("fotos_finais").select("*");
+  const { data, error } = await supabase
+    .from("fotos_finais")
+    .select(COLS_FOTO_FINAL);
   if (error) {
     console.error("[fotos.service] fetch fotos_finais:", error);
     return [];
@@ -112,7 +123,7 @@ export async function fetchFotosFinaisByOcorrencia(
 ): Promise<FotoOcorrenciaFinal[]> {
   const { data, error } = await supabase
     .from("fotos_finais")
-    .select("*")
+    .select(COLS_FOTO_FINAL)
     .eq("ocorrencia_id", ocorrenciaId);
 
   if (error) {
@@ -182,7 +193,20 @@ export async function createFotoServico(
     mime_type: mimeType,
     ordem: meta.ordem,
   } satisfies FotoServicoInsert);
-  if (error) console.error("[fotos.service] insertFotoServico:", error);
+  if (error) {
+    // rollback: remove o objeto órfão do bucket antes de propagar o erro
+    const { error: rollbackError } = await supabase.storage
+      .from("fotos-servico")
+      .remove([storagePath]);
+    if (rollbackError) {
+      console.error(
+        "[fotos.service] ÓRFÃO em fotos-servico — rollback falhou:",
+        storagePath,
+        rollbackError,
+      );
+    }
+    throw error;
+  }
 
   return { id: newId, storagePath, fileName: safeFileName, mimeType };
 }
@@ -191,14 +215,20 @@ export async function removeFotoServico(
   id: string,
   storagePath: string,
 ): Promise<void> {
+  // Ordem importa: apaga a linha primeiro. Se falhar, o objeto no bucket vira
+  // um órfão inofensivo (detectável por scripts/reconcile-fotos.mjs) em vez
+  // de deixar uma linha apontando para um objeto inexistente (imagem quebrada).
+  const { error } = await supabase.from("fotos_servico").delete().eq("id", id);
+  if (error) {
+    console.error("[fotos.service] removeFotoServico db:", error);
+    return;
+  }
+
   const { error: storageError } = await supabase.storage
     .from("fotos-servico")
     .remove([storagePath]);
   if (storageError)
     console.error("[fotos.service] removeFotoServico storage:", storageError);
-
-  const { error } = await supabase.from("fotos_servico").delete().eq("id", id);
-  if (error) console.error("[fotos.service] removeFotoServico db:", error);
 }
 
 export async function createFotoFinal(
@@ -236,7 +266,20 @@ export async function createFotoFinal(
     mime_type: mimeType,
     ordem: meta.ordem,
   } satisfies FotoFinalInsert);
-  if (error) console.error("[fotos.service] insertFotoFinal:", error);
+  if (error) {
+    // rollback: remove o objeto órfão do bucket antes de propagar o erro
+    const { error: rollbackError } = await supabase.storage
+      .from("fotos-finais")
+      .remove([storagePath]);
+    if (rollbackError) {
+      console.error(
+        "[fotos.service] ÓRFÃO em fotos-finais — rollback falhou:",
+        storagePath,
+        rollbackError,
+      );
+    }
+    throw error;
+  }
 
   return { id: newId, storagePath, fileName: safeFileName, mimeType };
 }
@@ -245,12 +288,18 @@ export async function removeFotoFinal(
   id: string,
   storagePath: string,
 ): Promise<void> {
+  // Ordem importa: apaga a linha primeiro. Se falhar, o objeto no bucket vira
+  // um órfão inofensivo (detectável por scripts/reconcile-fotos.mjs) em vez
+  // de deixar uma linha apontando para um objeto inexistente (imagem quebrada).
+  const { error } = await supabase.from("fotos_finais").delete().eq("id", id);
+  if (error) {
+    console.error("[fotos.service] removeFotoFinal db:", error);
+    return;
+  }
+
   const { error: storageError } = await supabase.storage
     .from("fotos-finais")
     .remove([storagePath]);
   if (storageError)
     console.error("[fotos.service] removeFotoFinal storage:", storageError);
-
-  const { error } = await supabase.from("fotos_finais").delete().eq("id", id);
-  if (error) console.error("[fotos.service] removeFotoFinal db:", error);
 }
