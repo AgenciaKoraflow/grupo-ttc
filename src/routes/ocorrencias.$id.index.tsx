@@ -1194,10 +1194,10 @@ function OcorrenciaDetailPage() {
               {[
                 {
                   key: "retirada_fios" as const,
-                  label: "Retirada de Fios",
+                  label: "Projeto",
                   fotos: retiradaFios,
                 },
-                { key: "ctop" as const, label: "CTOPs", fotos: ctops },
+                { key: "ctop" as const, label: "DMs", fotos: ctops },
               ].map(({ key, label, fotos }) => (
                 <div key={key}>
                   <div className="flex items-center justify-between mb-3">
@@ -1282,14 +1282,14 @@ function OcorrenciaDetailPage() {
               {retiradaFios.length > 0 && (
                 <div>
                   <p className="text-sm font-semibold text-foreground mb-3">
-                    Retirada de Fios
+                    Projeto
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {retiradaFios.map((f) => (
                       <img
                         key={f.id}
                         src={getFotoUrl(f.id, f.url) || ""}
-                        alt="Retirada fios"
+                        alt="Projeto"
                         onClick={() => {
                           const u = getFotoUrl(f.id, f.url);
                           if (u) handleZoomFoto(u);
@@ -1306,14 +1306,14 @@ function OcorrenciaDetailPage() {
               {ctops.length > 0 && (
                 <div>
                   <p className="text-sm font-semibold text-foreground mb-3">
-                    CTOPs
+                    DMs
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {ctops.map((f) => (
                       <img
                         key={f.id}
                         src={getFotoUrl(f.id, f.url) || ""}
-                        alt="CTOP"
+                        alt="DM"
                         onClick={() => {
                           const u = getFotoUrl(f.id, f.url);
                           if (u) handleZoomFoto(u);

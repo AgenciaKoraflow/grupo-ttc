@@ -190,7 +190,7 @@ function RelatorioPage() {
               color: "#0f172a",
             }}
           >
-            Retirada de Fios
+            Projeto
           </div>
           <div
             style={{
@@ -210,7 +210,7 @@ function RelatorioPage() {
               >
                 <img
                   src={f.url}
-                  alt="Retirada de fios"
+                  alt="Projeto"
                   crossOrigin="anonymous"
                   style={{ width: "100%", height: 160, objectFit: "cover" }}
                 />
@@ -232,7 +232,7 @@ function RelatorioPage() {
               color: "#0f172a",
             }}
           >
-            CTOP's
+            DMs
           </div>
           <div
             style={{
@@ -252,7 +252,7 @@ function RelatorioPage() {
               >
                 <img
                   src={f.url}
-                  alt="CTOP"
+                  alt="DM"
                   crossOrigin="anonymous"
                   style={{ width: "100%", height: 160, objectFit: "cover" }}
                 />
@@ -688,11 +688,11 @@ function RelatorioPage() {
               </div>
             )}
 
-            {/* Retirada de Fios */}
+            {/* Projeto */}
             {retiradaFios.length > 0 && (
               <div className="bg-slate-50 border-t p-8">
                 <h2 className="text-2xl font-bold text-slate-900 uppercase border-b-2 border-slate-200 pb-4 mb-6">
-                  Retirada de Fios
+                  Projeto
                 </h2>
                 <div className="grid grid-cols-3 gap-6">
                   {retiradaFios.map((f) => (
@@ -702,7 +702,7 @@ function RelatorioPage() {
                     >
                       <img
                         src={f.url}
-                        alt="Retirada de fios"
+                        alt="Projeto"
                         crossOrigin="anonymous"
                         className="w-full h-48 object-cover"
                       />
@@ -712,11 +712,11 @@ function RelatorioPage() {
               </div>
             )}
 
-            {/* CTOPs */}
+            {/* DMs */}
             {ctops.length > 0 && (
               <div className="bg-white border-t p-8">
                 <h2 className="text-2xl font-bold text-slate-900 uppercase border-b-2 border-slate-200 pb-4 mb-6">
-                  CTOP's
+                  DMs
                 </h2>
                 <div className="grid grid-cols-3 gap-6">
                   {ctops.map((f) => (
@@ -726,7 +726,7 @@ function RelatorioPage() {
                     >
                       <img
                         src={f.url}
-                        alt="CTOP"
+                        alt="DM"
                         crossOrigin="anonymous"
                         className="w-full h-48 object-cover"
                       />
@@ -837,7 +837,7 @@ function RelatorioPage() {
                 );
               })}
 
-              {/* Página de extras: retirada de fios + CTOPs */}
+              {/* Página de extras: Projeto + DMs */}
               {servicePages.length > 0 && hasExtras && (
                 <div
                   className="pdf-a4-page"
